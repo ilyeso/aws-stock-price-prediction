@@ -1,0 +1,4 @@
+.env
+stock-key-pairs.pem
+venv/
+__pycache__/
