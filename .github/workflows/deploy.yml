@@ -18,11 +18,11 @@ jobs:
       with:
         python-version: '3.9'
 
-    - name: Install dependencies
+    - name: Install dependencies locally
       run: |
         python -m venv venv
         source venv/bin/activate
-        pip install Flask requests pandas scikit-learn joblib
+        pip install -r requirements.txt
 
     - name: Copy files to EC2
       env:
@@ -41,4 +41,9 @@ jobs:
         EC2_USER: ec2-user
         EC2_HOST: ${{ secrets.EC2_HOST }}
       run: |
-        ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST 'source /home/ec2-user/stock-price-prediction/venv/bin/activate && cd /home/ec2-user/stock-price-prediction && pip install -r requirements.txt && python app.py'
+        ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
+          source /home/ec2-user/stock-price-prediction/venv/bin/activate
+          cd /home/ec2-user/stock-price-prediction
+          pip install -r requirements.txt
+          sudo systemctl restart stock-price-prediction
+        EOF
