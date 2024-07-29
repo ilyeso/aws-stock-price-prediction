@@ -3,7 +3,7 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main
+      - main  # Change this to your main branch
 
 jobs:
   deploy:
@@ -13,37 +13,20 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
+    - name: Set up SSH
+      uses: webfactory/ssh-agent@v0.5.3
       with:
-        python-version: '3.9'
-
-    - name: Install dependencies locally
-      run: |
-        python -m venv venv
-        source venv/bin/activate
-        pip install -r requirements.txt
+        ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
     - name: Copy files to EC2
-      env:
-        PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
-        EC2_USER: ec2-user
-        EC2_HOST: ${{ secrets.EC2_HOST }}
       run: |
-        mkdir -p ~/.ssh
-        echo "$PRIVATE_KEY" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        scp -o StrictHostKeyChecking=no -r * $EC2_USER@$EC2_HOST:/home/ec2-user/stock-price-prediction
+        rsync -avz -e "ssh -o StrictHostKeyChecking=no" --exclude 'venv' --exclude '.git' . ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/stock-price-prediction/
 
-    - name: SSH into EC2 and deploy
-      env:
-        PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
-        EC2_USER: ec2-user
-        EC2_HOST: ${{ secrets.EC2_HOST }}
+    - name: Install dependencies
       run: |
-        ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
-          source /home/ec2-user/stock-price-prediction/venv/bin/activate
+        ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
           cd /home/ec2-user/stock-price-prediction
+          source venv/bin/activate
           pip install -r requirements.txt
           sudo systemctl restart stock-price-prediction
         EOF
