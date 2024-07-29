@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Price Prediction</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
     <h1>Welcome to Stock Price Prediction V3</h1>
@@ -15,7 +16,8 @@
         <button type="submit">Predict</button>
     </form>
     <p>{{ prediction_text }}</p>
+    {% for graph in graphs %}
+        <div>{{ graph|safe }}</div>
+    {% endfor %}
 </body>
 </html>
-
-
