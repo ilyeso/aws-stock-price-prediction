@@ -11,13 +11,11 @@ app = Flask(__name__)
 api_key = os.getenv('ALPHA_API_KEY')
 model = load('model.joblib')
 
-
 @app.route('/')
 def home():
-    data = get_stock_data('NVDA')
-    graphs = create_graphs(data)
-    return render_template('index.html', graphs=graphs)
-
+    # data = get_stock_data('NVDA')
+    graph = create_graph()
+    return render_template('index.html', graph=graph)
 
 def get_stock_data(symbol):
     url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize=full&apikey={api_key}'
@@ -32,7 +30,6 @@ def get_stock_data(symbol):
                 if 'Error' in data:
                     print(f"Error message from Alpha Vantage API: {data['Information']}")
                     exit(1)
-
                 time_series_data = data['Default Response']
             except KeyError:
                 print("Unexpected response format from Alpha Vantage API. Please update the code to handle the new format.")
@@ -44,11 +41,11 @@ def get_stock_data(symbol):
             'index': 'date', '1. open': 'open', '2. high': 'high', '3. low': 'low', '4. close': 'close', '5. volume': 'volume'
         })
         df['date'] = pd.to_datetime(df['date'])
-        df = df.sort_values('date')
+        df = df.sort_values('date', ascending=False)  # Sort with most recent data first
 
-        # Filter data for the last 60 days
-        last_60_days = datetime.now() - timedelta(days=60)
-        df = df[df['date'] >= last_60_days]
+        # Filter data for the last 120 days
+        last_120_days = datetime.now() - timedelta(days=120)
+        df = df[df['date'] >= last_120_days]
 
         filename = 'NVDA_stock_data.xlsx'
         df.to_excel(filename, index=False)
@@ -58,25 +55,29 @@ def get_stock_data(symbol):
         print(f"Error fetching data: {response.status_code}")
         return pd.DataFrame()
 
+def create_graph():
+    df = pd.read_excel('NVDA_stock_data.xlsx')  
+    trace_close = go.Scatter(x=df['date'], y=df['close'], mode='lines', name='Close Price', 
+                             line=dict(color='blue', width=2))
+    trace_high = go.Scatter(x=df['date'], y=df['high'], mode='lines', name='High Price', 
+                            line=dict(color='green', width=1, dash='dash'))
+    trace_low = go.Scatter(x=df['date'], y=df['low'], mode='lines', name='Low Price', 
+                           line=dict(color='red', width=1, dash='dash'))
 
-def create_graphs(df):
-    graphs = []
-    traces = {
-        'open': 'Open Price',
-        'high': 'High Price',
-        'low': 'Low Price',
-        'close': 'Close Price'
-    }
-    for column, title in traces.items():
-        trace = go.Scatter(x=df['date'], y=df[column], mode='lines', name=title)
-        data = [trace]
-        layout = go.Layout(title=title, xaxis=dict(title='Date'), yaxis=dict(title=title))
-        fig = go.Figure(data=data, layout=layout)
-        graph = pyo.plot(fig, include_plotlyjs=False, output_type='div')
-        graphs.append(graph)
+    data = [trace_close, trace_high, trace_low]
 
-    return graphs
+    layout = go.Layout(
+        title='NVDA Stock Price',
+        xaxis=dict(title='Date', rangeslider=dict(visible=True), type='date'),
+        yaxis=dict(title='Price (USD)', tickprefix='$'),
+        hovermode='x unified',
+        legend=dict(x=0, y=1, traceorder='normal'),
+        template='plotly_white'
+    )
 
+    fig = go.Figure(data=data, layout=layout)
+    graph = pyo.plot(fig, include_plotlyjs=False, output_type='div')
+    return graph
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -84,10 +85,9 @@ def predict():
     final_features = [pd.Series(features)]
     prediction = model.predict(final_features)
     output = round(prediction[0], 2)
-    data = get_stock_data('NVDA')
-    graphs = create_graphs(data)
-    return render_template('index.html', prediction_text=f'Predicted Stock Close Price: ${output}', graphs=graphs)
-
+    # data = get_stock_data('NVDA')
+    graph = create_graph()
+    return render_template('index.html', prediction_text=f'Predicted Stock Close Price: ${output}', graph=graph)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, debug=True)

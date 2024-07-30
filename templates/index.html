@@ -12,12 +12,12 @@
         <input type="text" name="open" placeholder="Open  ">
         <input type="text" name="high" placeholder="High ">
         <input type="text" name="low" placeholder="Low">
-        <input type="text" name="volume" placeholder="Volume">
         <button type="submit">Predict</button>
     </form>
     <p>{{ prediction_text }}</p>
-    {% for graph in graphs %}
-        <div>{{ graph|safe }}</div>
-    {% endfor %}
+
+    <div class="graph-container">
+        {{ graph|safe }}
+    </div>
 </body>
 </html>

@@ -7,7 +7,7 @@ from joblib import dump
 data = pd.read_excel('NVDA_stock_data.xlsx')  
 
 # Data preparation for training
-X = data[['open', 'high', 'low', 'volume']]  # Features
+X = data[['open', 'high', 'low']]  
 y = data['close']
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
