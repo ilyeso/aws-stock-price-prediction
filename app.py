@@ -7,6 +7,7 @@ import plotly.graph_objs as go
 import plotly.offline as pyo
 from datetime import datetime, timedelta
 import boto3
+import logging
 
 app = Flask(__name__)
 
@@ -74,12 +75,18 @@ def create_graph():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    features = [float(x) for x in request.form.values()]
-    final_features = [pd.Series(features)]
-    prediction = model.predict(final_features)
-    output = round(prediction[0], 2)
-    graph = create_graph()
-    return render_template('index.html', prediction_text=f'Predicted Stock Close Price: ${output}', graph=graph)
+    try:
+        features = [float(x) for x in request.form.values()]
+        final_features = [pd.Series(features)]
+        prediction = model.predict(final_features)
+        output = round(prediction[0], 2)
+        graph = create_graph()
+        return render_template('index.html', prediction_text=f'Predicted Stock Close Price: ${output}', graph=graph)
+    except Exception as e:
+        logging.exception("Error during prediction: {e}")
+        return render_template('index.html', prediction_text="Error during prediction", graph=create_graph()), 500
+
 
 if __name__ == '__main__':
+    logging.basicConfig(filename='error.log', level=logging.DEBUG)
     app.run(host='0.0.0.0', port=8000, debug=True)
