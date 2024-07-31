@@ -8,8 +8,17 @@ import plotly.offline as pyo
 from datetime import datetime, timedelta
 import boto3
 import logging
+from logging.handlers import RotatingFileHandler
 
 app = Flask(__name__)
+
+# Set up logging
+if not app.debug:
+    handler = RotatingFileHandler('error.log', maxBytes=10000, backupCount=1)
+    handler.setLevel(logging.ERROR)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    app.logger.addHandler(handler)
 
 api_key = os.getenv('ALPHA_API_KEY')
 s3 = boto3.client('s3')
@@ -17,7 +26,6 @@ bucket_name = 'stock-market-project'
 data_file_key = 'data/NVDA_stock_data.xlsx'
 model_file_key = 'model/model.joblib'
 local_model_path = 'model.joblib'
-
 local_data_path = 'NVDA_stock_data.xlsx'
 
 def download_from_s3(file_key, local_path):
@@ -50,12 +58,12 @@ def home():
     return render_template('index.html', graph=graph)
 
 def create_graph():
-    df = pd.read_excel(local_data_path)  
-    trace_close = go.Scatter(x=df['date'], y=df['close'], mode='lines', name='Close Price', 
+    df = pd.read_excel(local_data_path)
+    trace_close = go.Scatter(x=df['date'], y=df['close'], mode='lines', name='Close Price',
                              line=dict(color='blue', width=2))
-    trace_high = go.Scatter(x=df['date'], y=df['high'], mode='lines', name='High Price', 
+    trace_high = go.Scatter(x=df['date'], y=df['high'], mode='lines', name='High Price',
                             line=dict(color='green', width=1, dash='dash'))
-    trace_low = go.Scatter(x=df['date'], y=df['low'], mode='lines', name='Low Price', 
+    trace_low = go.Scatter(x=df['date'], y=df['low'], mode='lines', name='Low Price',
                            line=dict(color='red', width=1, dash='dash'))
 
     data_traces = [trace_close, trace_high, trace_low]
@@ -83,10 +91,8 @@ def predict():
         graph = create_graph()
         return render_template('index.html', prediction_text=f'Predicted Stock Close Price: ${output}', graph=graph)
     except Exception as e:
-        logging.exception("Error during prediction: {e}")
+        app.logger.error("Error during prediction: %s", str(e))
         return render_template('index.html', prediction_text="Error during prediction", graph=create_graph()), 500
 
-
 if __name__ == '__main__':
-    logging.basicConfig(filename='error.log', level=logging.DEBUG)
     app.run(host='0.0.0.0', port=8000, debug=True)
