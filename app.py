@@ -8,7 +8,6 @@ import plotly.offline as pyo
 from datetime import datetime, timedelta
 import boto3
 
-
 app = Flask(__name__)
 
 api_key = os.getenv('ALPHA_API_KEY')
@@ -17,16 +16,29 @@ bucket_name = 'stock-market-project'
 data_file_key = 'data/NVDA_stock_data.xlsx'
 model_file_key = 'model/model.joblib'
 
+local_model_path = 'model.joblib'
+local_data_path = 'NVDA_stock_data.xlsx'
+
 def download_from_s3(file_key, local_path):
     s3.download_file(bucket_name, file_key, local_path)
 
 def load_model():
-    download_from_s3(model_file_key, 'model.joblib')
-    return load('model.joblib')
+    if not os.path.exists(local_model_path) or is_model_file_outdated(local_model_path):
+        download_from_s3(model_file_key, local_model_path)
+    return load(local_model_path)
 
 def load_data():
-    download_from_s3(data_file_key, 'NVDA_stock_data.xlsx')
-    return pd.read_excel('NVDA_stock_data.xlsx')
+    if not os.path.exists(local_data_path) or is_file_outdated(local_data_path):
+        download_from_s3(data_file_key, local_data_path)
+    return pd.read_excel(local_data_path)
+
+def is_model_file_outdated(file_path):
+    # Check if the file is older than 4 days
+    return (datetime.now() - datetime.fromtimestamp(os.path.getmtime(file_path))) > timedelta(days=4)
+
+def is_file_outdated(file_path):
+    # Check if the file is older than 1 day
+    return (datetime.now() - datetime.fromtimestamp(os.path.getmtime(file_path))) > timedelta(days=1)
 
 model = load_model()
 data = load_data()
@@ -36,46 +48,8 @@ def home():
     graph = create_graph()
     return render_template('index.html', graph=graph)
 
-# def get_stock_data(symbol):
-#     url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize=full&apikey={api_key}'
-#     response = requests.get(url)
-
-#     if response.status_code == 200:
-#         data = response.json()
-#         try:
-#             time_series_data = data['Time Series (Daily)']
-#         except KeyError:
-#             try:
-#                 if 'Error' in data:
-#                     print(f"Error message from Alpha Vantage API: {data['Information']}")
-#                     exit(1)
-#                 time_series_data = data['Default Response']
-#             except KeyError:
-#                 print("Unexpected response format from Alpha Vantage API. Please update the code to handle the new format.")
-#                 exit(1)
-
-#         df = pd.DataFrame.from_dict(time_series_data, orient='index')
-#         df = df[['1. open', '2. high', '3. low', '4. close', '5. volume']]
-#         df = df.reset_index(drop=False).rename(columns={
-#             'index': 'date', '1. open': 'open', '2. high': 'high', '3. low': 'low', '4. close': 'close', '5. volume': 'volume'
-#         })
-#         df['date'] = pd.to_datetime(df['date'])
-#         df = df.sort_values('date', ascending=False)  # Sort with most recent data first
-
-#         # Filter data for the last 120 days
-#         last_120_days = datetime.now() - timedelta(days=120)
-#         df = df[df['date'] >= last_120_days]
-
-#         filename = 'NVDA_stock_data.xlsx'
-#         df.to_excel(filename, index=False)
-#         print(f"Data successfully saved to {filename}")
-#         return df
-#     else:
-#         print(f"Error fetching data: {response.status_code}")
-#         return pd.DataFrame()
-
 def create_graph():
-    df = pd.read_excel('NVDA_stock_data.xlsx')  
+    df = pd.read_excel(local_data_path)  
     trace_close = go.Scatter(x=df['date'], y=df['close'], mode='lines', name='Close Price', 
                              line=dict(color='blue', width=2))
     trace_high = go.Scatter(x=df['date'], y=df['high'], mode='lines', name='High Price', 
@@ -83,7 +57,7 @@ def create_graph():
     trace_low = go.Scatter(x=df['date'], y=df['low'], mode='lines', name='Low Price', 
                            line=dict(color='red', width=1, dash='dash'))
 
-    data = [trace_close, trace_high, trace_low]
+    data_traces = [trace_close, trace_high, trace_low]
 
     layout = go.Layout(
         title='NVDA Stock Price',
@@ -94,7 +68,7 @@ def create_graph():
         template='plotly_white'
     )
 
-    fig = go.Figure(data=data, layout=layout)
+    fig = go.Figure(data=data_traces, layout=layout)
     graph = pyo.plot(fig, include_plotlyjs=False, output_type='div')
     return graph
 
