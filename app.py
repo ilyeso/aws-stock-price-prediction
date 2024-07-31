@@ -6,54 +6,73 @@ import os
 import plotly.graph_objs as go
 import plotly.offline as pyo
 from datetime import datetime, timedelta
+import boto3
+
 
 app = Flask(__name__)
+
 api_key = os.getenv('ALPHA_API_KEY')
-model = load('model.joblib')
+s3 = boto3.client('s3')
+bucket_name = 'stock-market-project'
+data_file_key = 'data/NVDA_stock_data.xlsx'
+model_file_key = 'model/model.joblib'
+
+def download_from_s3(file_key, local_path):
+    s3.download_file(bucket_name, file_key, local_path)
+
+def load_model():
+    download_from_s3(model_file_key, 'model.joblib')
+    return load('model.joblib')
+
+def load_data():
+    download_from_s3(data_file_key, 'NVDA_stock_data.xlsx')
+    return pd.read_excel('NVDA_stock_data.xlsx')
+
+model = load_model()
+data = load_data()
 
 @app.route('/')
 def home():
-    # data = get_stock_data('NVDA')
     graph = create_graph()
     return render_template('index.html', graph=graph)
 
-def get_stock_data(symbol):
-    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize=full&apikey={api_key}'
-    response = requests.get(url)
+# def get_stock_data(symbol):
+#     url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize=full&apikey={api_key}'
+#     response = requests.get(url)
 
-    if response.status_code == 200:
-        data = response.json()
-        try:
-            time_series_data = data['Time Series (Daily)']
-        except KeyError:
-            try:
-                if 'Error' in data:
-                    print(f"Error message from Alpha Vantage API: {data['Information']}")
-                    exit(1)
-                time_series_data = data['Default Response']
-            except KeyError:
-                print("Unexpected response format from Alpha Vantage API. Please update the code to handle the new format.")
-                exit(1)
+#     if response.status_code == 200:
+#         data = response.json()
+#         try:
+#             time_series_data = data['Time Series (Daily)']
+#         except KeyError:
+#             try:
+#                 if 'Error' in data:
+#                     print(f"Error message from Alpha Vantage API: {data['Information']}")
+#                     exit(1)
+#                 time_series_data = data['Default Response']
+#             except KeyError:
+#                 print("Unexpected response format from Alpha Vantage API. Please update the code to handle the new format.")
+#                 exit(1)
 
-        df = pd.DataFrame.from_dict(time_series_data, orient='index')
-        df = df[['1. open', '2. high', '3. low', '4. close', '5. volume']]
-        df = df.reset_index(drop=False).rename(columns={
-            'index': 'date', '1. open': 'open', '2. high': 'high', '3. low': 'low', '4. close': 'close', '5. volume': 'volume'
-        })
-        df['date'] = pd.to_datetime(df['date'])
-        df = df.sort_values('date', ascending=False)  # Sort with most recent data first
+#         df = pd.DataFrame.from_dict(time_series_data, orient='index')
+#         df = df[['1. open', '2. high', '3. low', '4. close', '5. volume']]
+#         df = df.reset_index(drop=False).rename(columns={
+#             'index': 'date', '1. open': 'open', '2. high': 'high', '3. low': 'low', '4. close': 'close', '5. volume': 'volume'
+#         })
+#         df['date'] = pd.to_datetime(df['date'])
+#         df = df.sort_values('date', ascending=False)  # Sort with most recent data first
 
-        # Filter data for the last 120 days
-        last_120_days = datetime.now() - timedelta(days=120)
-        df = df[df['date'] >= last_120_days]
+#         # Filter data for the last 120 days
+#         last_120_days = datetime.now() - timedelta(days=120)
+#         df = df[df['date'] >= last_120_days]
 
-        filename = 'NVDA_stock_data.xlsx'
-        df.to_excel(filename, index=False)
-        print(f"Data successfully saved to {filename}")
-        return df
-    else:
-        print(f"Error fetching data: {response.status_code}")
-        return pd.DataFrame()
+#         filename = 'NVDA_stock_data.xlsx'
+#         df.to_excel(filename, index=False)
+#         print(f"Data successfully saved to {filename}")
+#         return df
+#     else:
+#         print(f"Error fetching data: {response.status_code}")
+#         return pd.DataFrame()
 
 def create_graph():
     df = pd.read_excel('NVDA_stock_data.xlsx')  
@@ -85,7 +104,6 @@ def predict():
     final_features = [pd.Series(features)]
     prediction = model.predict(final_features)
     output = round(prediction[0], 2)
-    # data = get_stock_data('NVDA')
     graph = create_graph()
     return render_template('index.html', prediction_text=f'Predicted Stock Close Price: ${output}', graph=graph)
 
