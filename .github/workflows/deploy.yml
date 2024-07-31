@@ -20,7 +20,7 @@ jobs:
 
     - name: Copy files to EC2
       run: |
-        rsync -avz -e "ssh -o StrictHostKeyChecking=no" --exclude 'venv' --exclude '.git' . ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/stock-price-prediction/
+        rsync -avz -e "ssh -o StrictHostKeyChecking=no" --exclude 'venv' --exclude 'model.joblib' --exclude '.git' . ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/stock-price-prediction/
 
     - name: Install dependencies
       run: |
