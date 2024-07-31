@@ -15,8 +15,8 @@ s3 = boto3.client('s3')
 bucket_name = 'stock-market-project'
 data_file_key = 'data/NVDA_stock_data.xlsx'
 model_file_key = 'model/model.joblib'
-
 local_model_path = 'model.joblib'
+
 local_data_path = 'NVDA_stock_data.xlsx'
 
 def download_from_s3(file_key, local_path):
@@ -33,11 +33,11 @@ def load_data():
     return pd.read_excel(local_data_path)
 
 def is_model_file_outdated(file_path):
-    # Check if the file is older than 4 days
+    # Check if the model file is older than 4 days
     return (datetime.now() - datetime.fromtimestamp(os.path.getmtime(file_path))) > timedelta(days=4)
 
 def is_file_outdated(file_path):
-    # Check if the file is older than 1 day
+    # Check if the data file is older than 1 day
     return (datetime.now() - datetime.fromtimestamp(os.path.getmtime(file_path))) > timedelta(days=1)
 
 model = load_model()

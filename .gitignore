@@ -3,3 +3,4 @@ __pycache__/
 *.pem
 .env
 *.xlsx
+*.joblib
