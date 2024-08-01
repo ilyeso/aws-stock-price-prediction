@@ -1,3 +1,4 @@
+![image](https://github.com/user-attachments/assets/5719bfbe-989f-446a-927d-ac207b6a6250)
 
 # AWS Project: Nvidia Stock Price Prediction
 
@@ -73,6 +74,8 @@ Store the following secrets in your GitHub repository settings:
 - Create a role for the Lambda function with the following policies:
   - `AmazonS3FullAccess`
   - `AWSLambdaBasicExecutionRole`
+  - ![image](https://github.com/user-attachments/assets/db625700-2111-4892-9f6f-dee49230b981)
+
 ### 9. Create a Scheduler with EventBridge
 - Naviaget to EventBridge Service and create a Schedule and name it.
 - Set the target to the Lambda function created in step 8.
