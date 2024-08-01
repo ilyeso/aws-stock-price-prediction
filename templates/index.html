@@ -4,20 +4,71 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Price Prediction</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .prediction-result {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to Stock Price Prediction V3</h1>
-    <form action="/predict" method="post">
-        <input type="text" name="open" placeholder="Open  ">
-        <input type="text" name="high" placeholder="High ">
-        <input type="text" name="low" placeholder="Low">
-        <button type="submit">Predict</button>
-    </form>
-    <p>{{ prediction_text }}</p>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">NVDA Stock Price Prediction</h1>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <form action="/predict" method="post" class="mb-4">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" name="open" placeholder="Open Price">
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" class="form-control" name="high" placeholder="High Price">
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" class="form-control" name="low" placeholder="Low Price">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Predict</button>
+                </form>
+            </div>
+        </div>
 
-    <div class="graph-container">
-        {{ graph|safe }}
+        {% if prediction_text %}
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="alert alert-info prediction-result" role="alert">
+                    {{ prediction_text }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="graph-container">
+                            {{ graph|safe }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+    
+    <footer>
+        <div style="border: 2px solid;text-align:right" class="row" >
+            <a class='btn btn-link'  href='https://www.linkedin.com/in/ilyes-omri/'><h3 style="display:inline-block;">Elyes OMRI</h3></a>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS (optional) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
